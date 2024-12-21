@@ -41,7 +41,6 @@ detect_anomalies<- function(test_set, training_set,
   anomaly_points <- which(normalized_scores > threshold) + step_size + window_size
   # Return results as a list
   return(list(
-    max_score = max_score,
     divergence_scores = divergence_scores,
     normalized_scores = normalized_scores,
     anomaly_flags = anomaly_flags,
