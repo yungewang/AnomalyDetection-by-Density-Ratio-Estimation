@@ -1,20 +1,6 @@
 library(MASS)
 library(kernlab)
-
-#with correct order
-#x_nu = vector or data matrix of the numerator sample
-#x_de = vector or data matrix of the denominator sample
-#alpha = Rulsif parameter, if 0 RuLsif equals uLsif
-#sigmai = vector of bandwidths to check
-#lambdai = vector of penalty weights to check
-#b = size of the random sample used for ratio estimation
-#fold = number of cross validation steps
-
-
-#output:
-#wtrain =vector of predicted values of the ratio at x_nu; I don't standardize
-#r = estimated ratio function
-#estimated parameter vector in the semi parametric model 
+ 
 ginv2 <- function (X, tol = sqrt(.Machine$double.eps)) 
 {
   if (length(dim(X)) > 2L || !(is.numeric(X) || is.complex(X))) 
@@ -59,7 +45,7 @@ bRuLSIF <- function(x_de, x_nu, alpha = 0, sigmai = NULL, lambdai = 10^(seq(-3, 
   b <- min(b, n_nu)  
   x_ce <- x_nu[rand_index[1:b], ]  
   score_cv <- matrix(0, n_s, n_l)
-  #score_cv <- matrix(NA, n_s, n_l)
+ 
   if (n_s == 1 && n_l == 1) {
     sigma_chosen = sigmai
     lambda_chosen = lambdai
@@ -130,8 +116,20 @@ bRuLSIF <- function(x_de, x_nu, alpha = 0, sigmai = NULL, lambdai = 10^(seq(-3, 
     K <- kernelMatrix(rbfdot(sigma = 1 / (2 * sigma_chosen^2)), as.matrix(x_ce), as.matrix(x))
     array(t(K) %*% thetat)
   }
+  g_nu <- t(K_nu %*% thetat)
+  g_de <- t(K_de %*% thetat)
+  if (method == "pearson") {
+    # Pearson divergence
+    rPE <- -alpha / 2 * mean(g_nu^2) - 
+      (1 - alpha) / 2 * mean(g_de^2) + mean(g_nu) -1/2
+  } else if (method == "bregman") {
+    # Pearson-like scaled Bregman divergence
+    rPE <- 1/2 * mean(g_nu) - (2-alpha)/(2*(1-alpha)) * mean(g_de) +
+      1/(2*(1-alpha))
+  }
   
-  list(wtrain = wh_x_nu, r = r, thetat = thetat)
+  list(wtrain = wh_x_nu, r = r, thetat = thetat, score=rPE)
+  
 }
 
 
