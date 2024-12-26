@@ -1,6 +1,5 @@
 library(MASS)
 library(kernlab)
- 
 ginv2 <- function (X, tol = sqrt(.Machine$double.eps)) 
 {
   if (length(dim(X)) > 2L || !(is.numeric(X) || is.complex(X))) 
@@ -69,13 +68,15 @@ bRuLSIF <- function(x_de, x_nu, alpha = 0, sigmai = NULL, lambdai = 10^(seq(-3, 
           Ktmp2 <- K_nu[cv_index_nu[cv_split_nu != k], ]
           Ktmp <- alpha / nrow(Ktmp2) * t(Ktmp2) %*% Ktmp2 + 
             (1 - alpha) / nrow(Ktmp1) * t(Ktmp1) %*% Ktmp1
-          mKtmp <- colMeans(K_de[cv_index_de[cv_split_de != k], ])
+          mKtmp <- colMeans(K_nu[cv_index_nu[cv_split_nu != k], ])
           mK_de <- (1-alpha) * colMeans(K_de[cv_index_de[cv_split_de != k], ])
           mK_nu <- alpha * colMeans(K_nu[cv_index_nu[cv_split_nu != k], ])
           if (penalty == "l2") {
-            thetat_cv <- try(ginv(Ktmp + lambda * diag(b)) %*% mKtmp)
+            thetat_cv <- try(ginv(Ktmp + lambda * diag(nrow(Ktmp))) %*% mKtmp)
+            #thetat_cv <- try(ginv(Ktmp + lambda * diag(b)) %*% mKtmp)
           } else if (penalty == "l1") {
             thetat_cv <- 1/(mK_de + mK_nu)
+            #thetat_cv <- try(ginv(mK_de + mK_nu))
           }
           if (inherits(thetat_cv, "try-error")) {
             score_tmp[k, lambda_index] <- NA
@@ -93,6 +94,9 @@ bRuLSIF <- function(x_de, x_nu, alpha = 0, sigmai = NULL, lambdai = 10^(seq(-3, 
       }
       score_cv[sigma_index, ] <- colMeans(score_tmp, na.rm = TRUE)
     }
+    # Check for NA values and handle them
+    score_cv[is.na(score_cv)] <- Inf  # Replace NAs with a large value
+    
     best_score <- min(score_cv, na.rm = TRUE)
     best_score_pos <- which(score_cv == best_score, arr.ind = TRUE)[1, ]
     sigma_chosen_index <- best_score_pos[1]
@@ -106,7 +110,8 @@ bRuLSIF <- function(x_de, x_nu, alpha = 0, sigmai = NULL, lambdai = 10^(seq(-3, 
   thetat <- if (penalty == "l2") {
     ginv(alpha / n_nu * t(K_nu) %*% K_nu + (1 - alpha) / n_de * t(K_de) %*% K_de + lambda_chosen * diag(b)) %*% colMeans(K_nu)
   } else if (penalty == "l1") {
-    1/((1-alpha)*colMeans(K_de) + alpha *colMeans(K_nu))
+    #1/((1-alpha)*colMeans(K_de) + alpha *colMeans(K_nu))
+    ginv((1-alpha)%*%colMeans(K_de) + alpha %*%colMeans(K_nu))
   }
   
   thetat <- pmax(thetat, 0)
@@ -120,8 +125,9 @@ bRuLSIF <- function(x_de, x_nu, alpha = 0, sigmai = NULL, lambdai = 10^(seq(-3, 
   g_de <- t(K_de %*% thetat)
   if (method == "pearson") {
     # Pearson divergence
-    rPE <- -alpha / 2 * mean(g_nu^2) - 
-      (1 - alpha) / 2 * mean(g_de^2) + mean(g_nu) -1/2
+    #rPE <- -alpha / 2 * mean(g_nu^2) - 
+      #(1 - alpha) / 2 * mean(g_de^2) + mean(g_nu) -1/2
+    rPE <- 0.5*mean(g_nu) -1/2
   } else if (method == "bregman") {
     # Pearson-like scaled Bregman divergence
     rPE <- 1/2 * mean(g_nu) - (2-alpha)/(2*(1-alpha)) * mean(g_de) +
@@ -129,7 +135,7 @@ bRuLSIF <- function(x_de, x_nu, alpha = 0, sigmai = NULL, lambdai = 10^(seq(-3, 
   }
   
   list(wtrain = wh_x_nu, r = r, thetat = thetat, score=rPE)
-  
+
 }
 
 
