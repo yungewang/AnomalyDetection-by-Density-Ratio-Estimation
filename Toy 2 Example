@@ -1,0 +1,102 @@
+# Example 2: Toy2 with Two Outliers
+set.seed(123)
+
+# Generate training data
+x_train <- rnorm(200, mean = 0, sd = 1)
+
+# Generate test data with two outliers at indices 34 and 68
+x_test <- c(sample(x_train, 33), 15, sample(x_train, 33), 20, sample(x_train, 33))
+
+# True outlier indices
+true_anomalies <- c(34, 68)
+
+# Run anomaly detection function for one case
+result_toy2 <- sliding_window_divergence_brulsif(
+  train_data  = x_train, 
+  test_data   = x_test,
+  window_size = 3,
+  step_size   = 1,
+  threshold   = 0.9, 
+  runs        = 1,      
+  alpha       = 0.1,   # Example alpha for RuLSIF
+  sigmai      = NULL,  
+  lambdai     = 10^(seq(-3, 1, length.out = 5)), 
+  b           = 50,
+  fold        = 5,
+  method      = "pearson",
+  penalty     = "l2"
+)
+
+# Frequency Plot Function
+plot_frequency_bar <- function(result, true_anomalies, main_title = "Anomaly Detection Frequency") {
+  barplot(
+    result$point_frequency,
+    main = main_title,
+    xlab = "Index",
+    ylab = "Frequency",
+    col = "grey",
+    border = "black",
+    space = 0,
+    names.arg = 1:length(result$point_frequency)
+  )
+  
+  # Add vertical dashed lines for true outliers
+  abline(v = true_anomalies, col = "red", lty = 2)
+  
+  # Add red points for detected anomalies (intersection of true anomalies with frequency > 0)
+  detected_anomalies <- intersect(true_anomalies, which(result$point_frequency > 0))
+  points(
+    x = detected_anomalies,
+    y = result$point_frequency[detected_anomalies],
+    col = "red",
+    pch = 19
+  )
+}
+
+# Call Frequency Plot
+plot_frequency_bar(
+  result = result_toy2,
+  true_anomalies = true_anomalies,
+  main_title = "RuLSIF Frequency L2"
+)
+
+# Raw Mean Score Plot
+raw_window_scores <- sliding_window_divergence_brulsif(
+  train_data  = x_train, 
+  test_data   = x_test,
+  window_size = 3,
+  step_size   = 1,
+  threshold   = 0.0, # No threshold to capture all scores
+  runs        = 1,
+  alpha       = 0.1,   # Same alpha
+  sigmai      = NULL,  
+  lambdai     = 10^(seq(-3, 1, length.out = 5)), 
+  b           = 50,
+  fold        = 5,
+  method      = "bregman",
+  penalty     = "l2"
+)$mean_point_scores
+
+# Plot Raw Mean Score
+plot(
+  x = 1:length(raw_window_scores),
+  y = raw_window_scores,
+  type = "l",
+  col = "black",
+  lwd = 2,
+  main = "Raw Mean Scores",
+  xlab = "Index",
+  ylab = "Score"
+)
+
+# Add vertical dashed lines for true outliers
+abline(v = true_anomalies, col = "red", lty = 2)
+
+# Add red points for detected anomalies
+detected_anomalies <- intersect(true_anomalies, which(raw_window_scores > 0))
+points(
+  x = detected_anomalies,
+  y = raw_window_scores[detected_anomalies],
+  col = "red",
+  pch = 19
+)
