@@ -76,7 +76,7 @@ sliding_window_divergence_brulsif<- function(
     
     if(length(anomalous_windows) > 0) {
      # Find the anomaly point for each anomalous window
-      anomaly_points <- windows_start[anomalous_windows] + step_size + window_size
+      anomaly_points <- windows_end[anomalous_windows] 
      # Ensure anomaly points are within valid test indices
       anomaly_points <- anomaly_points[anomaly_points <= n_test]
        # Update the frequency, scores, and counts for detected points
