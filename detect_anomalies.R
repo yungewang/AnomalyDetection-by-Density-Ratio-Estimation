@@ -86,18 +86,14 @@ sliding_window_divergence_brulsif<- function(
       point_counts[anomaly_points] <- point_counts[anomaly_points] + 1
     }
   }
-   # Initialize cumulative anomaly points
-  cumulative_anomaly_points <- numeric(0)
   
-  # Within the loop:
-  cumulative_anomaly_points <- unique(c(cumulative_anomaly_points, anomaly_points))
   # Calculate mean scores for points that were detected as anomalies
   mean_point_scores <- numeric(n_test)
   mean_point_scores[point_counts > 0] <- point_scores[point_counts > 0] / 
     point_counts[point_counts > 0]
 
   list(
-    anomaly_indices = cumulative_anomaly_points,       # Indices of detected anomalies
+    anomaly_indices = anomaly_points,       # Indices of detected anomalies
     point_frequency = point_frequency,       # Frequency of anomaly detection per point
     mean_point_scores = mean_point_scores,   # Mean scores for detected anomalies
     windows_start = windows_start,           # Start indices of sliding windows
