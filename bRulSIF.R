@@ -114,7 +114,6 @@ bRuLSIF <- function(x_de, x_nu, alpha = 0, sigmai = NULL, lambdai = 10^(seq(-3, 
     ginv((1-alpha)%*%colMeans(K_de) + alpha %*%colMeans(K_nu))
   }
   
-  thetat <- pmax(thetat, 0)
   wh_x_nu <- t(K_de %*% thetat)  
   
   r <- function(x) { 
