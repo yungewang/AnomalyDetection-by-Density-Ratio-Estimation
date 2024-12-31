@@ -1,0 +1,50 @@
+library(pROC)
+
+calculate_average_auc <- function(train_data, test_data, real_anomalies, n_runs = 20, window_size = 10, step_size = 1, threshold = 0.9, penalty, method, alpha) {
+  # Validate inputs
+  if (!is.matrix(train_data) && !is.data.frame(train_data)) stop("train_data must be a matrix or data frame.")
+  if (!is.matrix(test_data) && !is.data.frame(test_data)) stop("test_data must be a matrix or data frame.")
+  if (!is.numeric(real_anomalies)) stop("real_anomalies must be numeric.")
+  if (any(real_anomalies > nrow(test_data))) stop("real_anomalies indices exceed test_data rows.")
+  
+  total_points <- nrow(test_data)
+  auc_values <- numeric(n_runs)
+  
+  for (run_idx in 1:n_runs) {
+    # Detect anomalies for the current run
+    results <- sliding_window_divergence_brulsif(
+      train_data = train_data,
+      test_data = test_data,
+      window_size = window_size,
+      step_size = step_size,
+      threshold = threshold,
+      runs = 1,  # Single run per iteration
+      penalty = penalty,
+      method = method,
+      alpha = alpha
+    )
+    
+    # Use mean_point_scores as continuous anomaly scores
+    anomaly_scores <- results$mean_point_scores
+    
+    # Create binary labels for true anomalies
+    true_labels <- ifelse(seq_len(total_points) %in% real_anomalies, 1, 0)
+    
+    # Calculate AUC using pROC
+    if (length(unique(true_labels)) > 1) {  # Ensure both classes are present
+      roc_obj <- roc(response = true_labels, predictor = anomaly_scores)
+      auc_values[run_idx] <- auc(roc_obj)
+    } else {
+      auc_values[run_idx] <- NA  # Mark as NA if AUC cannot be calculated
+    }
+  }
+  
+  # Calculate the mean AUC
+  mean_auc <- mean(auc_values, na.rm = TRUE)
+  
+  # Return all AUC values and the mean
+  list(
+    auc_values = auc_values,
+    mean_auc = mean_auc
+  )
+}
