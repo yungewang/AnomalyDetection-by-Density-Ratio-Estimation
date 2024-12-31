@@ -1,0 +1,58 @@
+# Load the required library and dataset
+library(R.matlab)
+data <- readMat("benchmarks.mat")
+diabetis <- data$diabetis
+
+# Extract feature matrix and labels
+x <- diabetis[[1]]  # Feature matrix
+t <- diabetis[[2]]  # Labels
+
+# Training set: Only positive samples (label == 1)
+positive_indices <- which(t == 1)
+x_train <- x[positive_indices, ]
+t_train <- t[positive_indices]
+
+# Set seed and define fraction of negative samples for the test set
+set.seed(123)
+rho <- 0.2  # Fraction of negative samples
+
+# Create the test set: Combine positive and sampled negative samples
+negative_indices <- which(t == -1)
+sampled_negative_indices <- sample(negative_indices, size = ceiling(rho * length(negative_indices)))
+test_indices <- sample(c(positive_indices, sampled_negative_indices))
+
+x_test <- x[test_indices, ]
+t_test <- t[test_indices]
+
+# Identify real anomalies in the test set (label == -1)
+real_anomalies <- which(t_test == -1)
+
+# Example configuration
+method <- "pearson"
+penalty <- "l1"
+alpha <- 0.1
+
+# Calculate AUC for the given configuration
+result <- calculate_average_auc(
+  train_data = x_train,
+  test_data = x_test,
+  real_anomalies = real_anomalies,
+  n_runs = 20,
+  window_size = 10,
+  step_size = 5,
+  threshold = 0.9,
+  alpha = alpha,
+  method = method,
+  penalty = penalty
+)
+
+# Display the result
+results_table <- data.frame(
+  Method = method,
+  Penalty = penalty,
+  Alpha = alpha,
+  Mean_AUC = result$mean_auc
+)
+
+
+
