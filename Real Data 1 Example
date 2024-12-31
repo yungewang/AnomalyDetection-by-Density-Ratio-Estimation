@@ -1,0 +1,115 @@
+data <- read.csv("A2Benchmark/synthetic_11.csv")
+
+# Identify indices of normal data
+positions_normal <- which(data$is_anomaly == 0)
+
+# Extract training and testing data
+x_train <- as.matrix(data$value[positions_normal[450:550]])  # Subset of normal data
+x_test <- as.matrix(data$value[601:701])  # Subset of full data
+
+test_indices <- 601:701      # Indices for the test set
+real_anomalies <- c(624, 625, 626, 659, 660, 661)  # Real anomalies
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Load the data
+data <- read.csv("/Users/yungewang/Downloads/ydata-labeled-time-series-anomalies-v1_0/A2Benchmark/synthetic_11.csv")
+
+# Extract training and test data
+positions_normal <- which(data$is_anomaly == 0)  # Normal data indices
+x_train <- as.matrix(data$value[positions_normal[450:550]])  # Subset of normal data
+x_test <- as.matrix(data$value[601:701])  # Subset for testing
+real_anomalies <- c(624, 625, 626, 659, 660, 661)  # Real anomalies
+test_indices <- 601:701  # Indices for the test set
+
+# Run anomaly detection function for one case
+result_synthetic <- sliding_window_divergence_brulsif(
+  train_data  = x_train,
+  test_data   = x_test,
+  window_size = 3,
+  step_size   = 1,
+  threshold   = 0.9,
+  runs        = 50,
+  alpha       = 0.1,   # Example alpha for RuLSIF
+  sigmai      = NULL,
+  lambdai     = 10^(seq(-3, 1, length.out = 5)),
+  b           = 50,
+  fold        = 5,
+  method      = "pearson",
+  penalty     = "l1"
+)
+
+# Frequency Plot Function
+plot_frequency_bar <- function(result, true_anomalies, main_title = "Anomaly Detection Frequency") {
+  barplot(
+    result$point_frequency,
+    main = main_title,
+    xlab = "Time Point",
+    ylab = "Frequency",
+    col = "grey",
+    border = "black",
+    space = 0,
+    names.arg = 1:length(result$point_frequency)
+  )
+
+  # Add vertical dashed lines for true outliers
+  abline(v = true_anomalies - min(test_indices) + 1, col = "red", lty = 2)
+
+  # Add red points for detected anomalies
+  detected_anomalies <- intersect(true_anomalies, test_indices[which(result$point_frequency > 0)])
+  points(
+    x = detected_anomalies - min(test_indices) + 1,
+    y = result$point_frequency[detected_anomalies - min(test_indices) + 1],
+    col = "red",
+    pch = 19
+  )
+}
+
+# Call Frequency Plot
+plot_frequency_bar(
+  result = result_synthetic,
+  true_anomalies = real_anomalies,
+  main_title = "Synthetic Frequency (Pearson, L1)"
+)
+
+# Raw Mean Score Plot
+raw_scores <- sliding_window_divergence_brulsif(
+  train_data  = x_train,
+  test_data   = x_test,
+  window_size = 3,
+  step_size   = 1,
+  threshold   = 0.0,  # No threshold to capture all scores
+  runs        = 50,
+  alpha       = 0.1,   # Same alpha
+  sigmai      = NULL,
+  lambdai     = 10^(seq(-3, 1, length.out = 5)),
+  b           = 50,
+  fold        = 5,
+  method      = "pearson",
+  penalty     = "l1"
+)$mean_point_scores
+
+# Plot Raw Mean Score
+plot(
+  x = 1:length(raw_scores),
+  y = raw_scores,
+  type = "l",
+  col = "black",
+  lwd = 2,
+  main = "Raw Mean Scores (Synthetic)",
+  xlab = "Time Point",
+  ylab = "Score"
+)
+
+# Add vertical dashed lines for true outliers
+abline(v = real_anomalies - min(test_indices) + 1, col = "red", lty = 2)
+
+# Add red points for detected anomalies
+detected_anomalies <- intersect(real_anomalies, test_indices[which(raw_scores > 0)])
+points(
+  x = detected_anomalies - min(test_indices) + 1,
+  y = raw_scores[detected_anomalies - min(test_indices) + 1],
+  col = "red",
+  pch = 19
+)
