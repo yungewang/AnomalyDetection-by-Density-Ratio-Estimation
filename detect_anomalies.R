@@ -12,7 +12,7 @@ sliding_window_divergence_brulsif<- function(
     fold = 5,            # Number of folds for cross-validation in bRuLSIF
     method = "pearson",  # Divergence estimation method, method="pearson", "bregman"
     penalty = "l2"       # Penalty type for bRuLSIF, penalty="l1", "l2")
-{
+){
    # Ensure input data is in matrix form
   if (!is.matrix(train_data)) {
     train_data <- matrix(train_data, ncol = 1)
